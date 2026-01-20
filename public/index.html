@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Telegram Community Feed</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+    }
+    li {
+      margin-bottom: 10px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #eee;
+    }
+  </style>
+</head>
+<body>
+  <h2>🔥 Telegram Community Feed</h2>
+  <ul id="feed"></ul>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const feed = document.getElementById("feed");
+
+    // Lấy tin cũ
+    fetch("/messages")
+      .then(res => res.json())
+      .then(data => data.reverse().forEach(addMessage));
+
+    // Nhận tin realtime
+    socket.on("new_message", addMessage);
+
+    function addMessage(msg) {
+      const li = document.createElement("li");
+      li.innerHTML = `<b>${msg.user}</b>: ${msg.text}`;
+      feed.prepend(li);
+    }
+  </script>
+</body>
+</html>

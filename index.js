@@ -1,69 +1,40 @@
 const express = require("express");
-const bodyParser = require("body-parser");
-const http = require("http");
-const { Server } = require("socket.io");
+const TelegramBot = require("node-telegram-bot-api");
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
+app.use(express.json());
 
-// Đọc JSON từ Telegram
-app.use(bodyParser.json());
+const PORT = process.env.PORT || 3000;
+const TOKEN = process.env.BOT_TOKEN;
 
-// Serve web (index.html trong thư mục public)
-app.use(express.static("public"));
+// ✅ Khởi tạo bot ở chế độ WEBHOOK
+const bot = new TelegramBot(TOKEN, { webHook: true });
 
-// Lưu tin nhắn trong RAM (nhanh – phù hợp MVP)
+// Trang web công cộng
 let messages = [];
 
-// ================================
-// TELEGRAM WEBHOOK
-// ================================
-app.post("/telegram", (req, res) => {
-  const msg = req.body.message;
+app.get("/", (req, res) => {
+  let html = "<h1>📢 Bảng tin cộng đồng</h1>";
+  messages.slice().reverse().forEach(m => {
+    html += `<p>🗣 ${m}</p>`;
+  });
+  res.send(html);
+});
 
-  // Chỉ xử lý tin nhắn text
-  if (!msg || !msg.text) {
-    return res.sendStatus(200);
+// ✅ Endpoint webhook ĐÚNG
+app.post("/webhook", (req, res) => {
+  bot.processUpdate(req.body);
+  res.sendStatus(200); // BẮT BUỘC phải trả 200
+});
+
+// Nhận tin nhắn
+bot.on("message", (msg) => {
+  if (msg.text) {
+    messages.push(msg.text);
+    console.log("New message:", msg.text);
   }
-
-  const data = {
-    user: msg.from.username || msg.from.first_name || "anonymous",
-    text: msg.text,
-    time: Date.now()
-  };
-
-  messages.push(data);
-
-  // Giữ tối đa 200 tin cho nhẹ
-  if (messages.length > 200) {
-    messages.shift();
-  }
-
-  // Gửi realtime cho web
-  io.emit("new_message", data);
-
-  res.sendStatus(200);
 });
 
-// ================================
-// API LẤY TIN CŨ
-// ================================
-app.get("/messages", (req, res) => {
-  res.json(messages);
-});
-
-// ================================
-// SOCKET.IO
-// ================================
-io.on("connection", () => {
-  console.log("Client connected");
-});
-
-// ================================
-// START SERVER
-// ================================
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
 });

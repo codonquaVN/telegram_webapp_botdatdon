@@ -13,10 +13,19 @@ const bot = new TelegramBot(TOKEN, { webHook: true });
 // Trang web công cộng
 let messages = [];
 
+function linkify(text) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return text.replace(urlRegex, function(url) {
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+  });
+}
+
+
 app.get("/", (req, res) => {
   let html = "<h1>📢 Bảng tin cộng đồng</h1>";
   messages.slice().reverse().forEach(m => {
-    html += `<p>🗣 ${m}</p>`;
+    html += `<p>🗣 ${linkify(m)}</p>`;
+
   });
   res.send(html);
 });
